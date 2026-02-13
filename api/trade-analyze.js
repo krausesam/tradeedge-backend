@@ -1,62 +1,50 @@
 export default async function handler(req, res) {
+  const { season, week, player_id, game_id, team_id } = req.query;
 
-  // Enable CORS
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
+  // Require at least season + week to prevent empty calls
+  if (!season || !week) {
+    return res.status(400).json({
+      error: "Missing required parameters",
+      message: "You must provide at least season and week",
+      example:
+        "/api/trade-analyze?season=2024&week=1",
+    });
   }
 
   try {
-    const { sport, playerId } = req.query;
+    const url = `https://api.clearsportsapi.com/api/v1/nfl/player-stats?season=${season}&week=${week}${
+      player_id ? `&player_id=${player_id}` : ""
+    }${game_id ? `&game_id=${game_id}` : ""}${
+      team_id ? `&team_id=${team_id}` : ""
+    }`;
 
-    if (!sport || !playerId) {
-      return res.status(400).json({ error: "Missing sport or playerId" });
-    }
-
-    const apiKey = process.env.CLEARSPORTS_API_KEY;
-
-    const response = await fetch(
-  `https://api.clearsportsapi.com/`,
-  {
-    headers: {
-      Authorization: `Bearer ${apiKey}`
-    }
-  }
-);
-
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${process.env.CLEARSPORTS_API_KEY}`,
+      },
+    });
 
     if (!response.ok) {
-  const errorText = await response.text();
-  return res.status(response.status).json({
-    error: "ClearSports API error",
-    status: response.status,
-    details: errorText
-  });
-}
+      const errorText = await response.text();
+      return res.status(response.status).json({
+        error: "ClearSports API error",
+        status: response.status,
+        details: errorText,
+      });
+    }
 
     const data = await response.json();
 
-    // Simple NFL scoring example
-    let fantasyPoints = 0;
-
-    if (sport === "nfl") {
-      fantasyPoints =
-        (data.passing_yards || 0) * 0.04 +
-        (data.passing_tds || 0) * 4 +
-        (data.rushing_yards || 0) * 0.1 +
-        (data.receptions || 0) * 1;
-    }
-
-    res.status(200).json({
-      player: data.name,
-      sport,
-      fantasyPoints,
-      rawStats: data
+    return res.status(200).json({
+      success: true,
+      endpoint_called: url,
+      data: data,
     });
 
   } catch (error) {
-    res.status(500).json({ error: "Server error", details: error.message });
+    return res.status(500).json({
+      error: "Server error",
+      details: error.message,
+    });
   }
 }
