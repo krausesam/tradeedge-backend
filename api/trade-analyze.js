@@ -18,13 +18,14 @@ export default async function handler(req, res) {
     const apiKey = process.env.CLEARSPORTS_API_KEY;
 
     const response = await fetch(
-      `https://api.clearsportsapi.com/v1/${sport}/players/${playerId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${apiKey}`
-        }
-      }
-    );
+  `https://api.clearsportsapi.com/`,
+  {
+    headers: {
+      Authorization: `Bearer ${apiKey}`
+    }
+  }
+);
+
 
     if (!response.ok) {
   const errorText = await response.text();
