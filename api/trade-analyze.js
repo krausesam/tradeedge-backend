@@ -27,8 +27,13 @@ export default async function handler(req, res) {
     );
 
     if (!response.ok) {
-      return res.status(500).json({ error: "Failed to fetch player data" });
-    }
+  const errorText = await response.text();
+  return res.status(response.status).json({
+    error: "ClearSports API error",
+    status: response.status,
+    details: errorText
+  });
+}
 
     const data = await response.json();
 
