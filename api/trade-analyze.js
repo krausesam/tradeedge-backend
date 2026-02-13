@@ -1,22 +1,36 @@
 export default async function handler(req, res) {
-  const { season, week, player_id, game_id, team_id } = req.query;
+  const { sport, season, week, player_id, game_id, team_id } = req.query;
 
-  // Require at least season + week to prevent empty calls
-  if (!season || !week) {
+  // Validate required fields
+  if (!sport || !season) {
     return res.status(400).json({
       error: "Missing required parameters",
-      message: "You must provide at least season and week",
+      message: "You must provide at least sport and season",
       example:
-        "/api/trade-analyze?season=2024&week=1",
+        "/api/trade-analyze?sport=nfl&season=2024&week=1",
     });
   }
 
   try {
-    const url = `https://api.clearsportsapi.com/api/v1/nfl/player-stats?season=${season}&week=${week}${
-      player_id ? `&player_id=${player_id}` : ""
-    }${game_id ? `&game_id=${game_id}` : ""}${
-      team_id ? `&team_id=${team_id}` : ""
-    }`;
+    // Build base endpoint dynamically
+    let url = `https://api.clearsportsapi.com/api/v1/${sport}/player-stats?season=${season}`;
+
+    // NFL uses week
+    if (week) {
+      url += `&week=${week}`;
+    }
+
+    if (player_id) {
+      url += `&player_id=${player_id}`;
+    }
+
+    if (game_id) {
+      url += `&game_id=${game_id}`;
+    }
+
+    if (team_id) {
+      url += `&team_id=${team_id}`;
+    }
 
     const response = await fetch(url, {
       headers: {
@@ -30,6 +44,7 @@ export default async function handler(req, res) {
         error: "ClearSports API error",
         status: response.status,
         details: errorText,
+        endpoint_called: url,
       });
     }
 
@@ -37,6 +52,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
+      sport: sport,
       endpoint_called: url,
       data: data,
     });
